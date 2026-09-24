@@ -1,0 +1,16 @@
+
+kamran.latif@cogentlabs.co:
+  password: user123
+  role: customer
+
+hamza.khalid@cogentlabs.co:
+  password: user123
+  role: customer
+
+kamranlatif98@gmail.com:
+  password: user123
+  role: customer
+
+admin@cogentlabs.co:
+  password: admin123
+  role: admin

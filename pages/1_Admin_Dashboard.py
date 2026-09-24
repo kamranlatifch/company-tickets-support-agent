@@ -24,6 +24,7 @@ def _init_session():
         "review_draft": None,  # {"subject": ..., "body": ...} — latest interrupt payload
         "review_done": None,  # set once finalized, holds final subject/body for confirmation
         "review_email_result": None,  # send_resolution_email's result, so it fires once per approval
+        "draft_version": 0,  # bumps on every new draft so the text boxes below are recreated, not stale
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -53,7 +54,6 @@ def _login():
             st.error("Invalid admin credentials.")
 
 
-@st.fragment(run_every=4)
 def _ticket_list():
     from tools import list_all_tickets
 
@@ -84,6 +84,13 @@ def _ticket_list():
             st.divider()
 
 
+def _set_draft(payload: dict):
+    """Show a new draft. Streamlit keeps a keyed widget's old text when its default value
+    changes, so the text boxes are keyed by draft_version to force a fresh one."""
+    st.session_state.review_draft = payload
+    st.session_state.draft_version += 1
+
+
 def _start_review(ticket_id: str):
     from tools import get_ticket
 
@@ -107,7 +114,7 @@ def _start_review(ticket_id: str):
     )
     interrupts = result.get("__interrupt__")
     if interrupts:
-        st.session_state.review_draft = interrupts[0].value
+        _set_draft(interrupts[0].value)
 
 
 def _submit(action: str, **payload):
@@ -119,7 +126,7 @@ def _submit(action: str, **payload):
 
     interrupts = result.get("__interrupt__")
     if interrupts:
-        st.session_state.review_draft = interrupts[0].value
+        _set_draft(interrupts[0].value)
     else:
         st.session_state.review_done = {
             "subject": result.get("final_subject"),
@@ -152,6 +159,9 @@ def _review_panel():
         provider = result.get("provider", "The email provider")
 
         st.success(f"Approved. Ticket {ticket_id} resolved.")
+        st.caption("Exactly what was sent to the customer:")
+        st.text_input("Subject sent", value=done["subject"], disabled=True, key=f"sent_subject_{ticket_id}")
+        st.text_area("Body sent", value=done["body"], height=200, disabled=True, key=f"sent_body_{ticket_id}")
         if result["status"] == "sent":
             st.success(
                 f"{provider} accepted the email to {result['to']} (status {result['status_code']}). "
@@ -177,34 +187,37 @@ def _review_panel():
     if not draft:
         return
 
-    st.text_input("Subject", value=draft["draft_subject"], key="edit_subject", disabled=True)
-    body = st.text_area("Draft reply", value=draft["draft_body"], height=200, key="edit_body")
+    version = st.session_state.draft_version
+    st.text_input("Subject", value=draft["draft_subject"], key=f"edit_subject_{version}", disabled=True)
+    st.caption("You can edit the reply below; whatever is in the box is what gets sent.")
+    body = st.text_area("Draft reply", value=draft["draft_body"], height=260, key=f"edit_body_{version}")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
-        if st.button("Approve as-is", type="primary"):
-            _submit("approve")
-            st.rerun(scope="app")
-    with col2:
-        if st.button("Send edited version"):
+        if st.button("Approve & send", type="primary"):
             _submit("edit", subject=draft["draft_subject"], body=body)
             st.rerun(scope="app")
-    with col3:
-        feedback_open = st.session_state.get("show_feedback_box", False)
+    with col2:
         if st.button("Give feedback, redraft"):
             st.session_state.show_feedback_box = True
 
     if st.session_state.get("show_feedback_box"):
-        notes = st.text_area("What should change?", key="feedback_notes")
+        notes = st.text_area("What should change?", key=f"feedback_notes_{version}")
         if st.button("Submit feedback"):
-            _submit("feedback", notes=notes)
-            st.session_state.show_feedback_box = False
-            st.rerun(scope="app")
+            if notes.strip():
+                # send the box's current text too, so the redraft revises it (edits included)
+                _submit("feedback", notes=notes, body=body)
+                st.session_state.show_feedback_box = False
+                st.rerun(scope="app")
+            else:
+                st.warning("Write what should change first.")
 
     if st.button("Cancel review"):
         st.session_state.reviewing_ticket_id = None
         st.session_state.review_draft = None
         st.session_state.review_done = None
+        st.session_state.review_email_result = None
+        st.session_state.show_feedback_box = False
         st.rerun(scope="app")
 
 
@@ -217,7 +230,11 @@ def _dashboard():
             st.rerun()
 
     st.title("🛠️ Ticket Dashboard")
-    _ticket_list()
+    # Auto-refresh the list only while browsing it. During a review the admin is typing and
+    # clicking, and a background rerun every few seconds makes those clicks queue behind it
+    # (and flashes the "running" indicator). The list refreshes again when they go back.
+    poll_every = None if st.session_state.reviewing_ticket_id else 5
+    st.fragment(_ticket_list, run_every=poll_every)()
 
     if st.session_state.reviewing_ticket_id:
         _review_panel()

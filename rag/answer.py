@@ -39,6 +39,24 @@ def _needs_wider_search(question: str, history: list[dict]) -> bool:
     return bool(history) and (bool(FOLLOWUP_HINTS.search(question)) or len(question.split()) <= 8)
 
 
+SMALLTALK_SYSTEM = (
+    "You are a warm, friendly Cogent Labs support assistant. The customer sent only a greeting, "
+    "thanks, or goodbye. Reply in one or two short sentences. When it fits, invite them to ask "
+    "about company policies (leave, loans, medical, hardware, trips) or account help. "
+    "Never state any policy or facts."
+)
+
+
+def prepare_smalltalk_stream(question: str, history: list[dict] | None = None):
+    """Reply to a greeting/thanks without touching the KB."""
+    messages = [
+        {"role": "system", "content": SMALLTALK_SYSTEM},
+        *_api_history(history or []),
+        {"role": "user", "content": question},
+    ]
+    return chat_stream(messages)
+
+
 def search_kb(question: str, summary: str = "", history: list[dict] | None = None) -> list[dict]:
     """Retrieve KB passages for a message. `summary` is the assessment's one-line,
     context-resolved restatement — it turns a bare follow-up like 'ok how many max

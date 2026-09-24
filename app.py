@@ -166,21 +166,26 @@ def _chat_page():
 
     from agents import assess_message
     from policy import decide_outcome
-    from rag.answer import prepare_answer_stream, search_kb
+    from rag.answer import prepare_answer_stream, prepare_smalltalk_stream, search_kb
     from tools import get_account
 
     history = _history_text()
     with st.spinner("Thinking..."):
         assessment = assess_message(prompt, history=history)
         account = get_account(st.session_state.email)
-        hits = search_kb(prompt, assessment.summary, st.session_state.messages[:-1])
-        kb_score = hits[0]["score"] if hits else 0.0
+        hits, kb_score = [], None  # small talk skips the KB search and the relevance check
+        if not assessment.is_small_talk:
+            hits = search_kb(prompt, assessment.summary, st.session_state.messages[:-1])
+            kb_score = hits[0]["score"] if hits else 0.0
         outcome, reason = decide_outcome(assessment, account, kb_score)
 
     if outcome == ChatOutcome.ANSWER:
         with st.chat_message("assistant"):
-            prepared = prepare_answer_stream(prompt, history=st.session_state.messages[:-1], hits=hits)
-            answer = st.write_stream(prepared["stream"])
+            if assessment.is_small_talk:
+                answer = st.write_stream(prepare_smalltalk_stream(prompt, st.session_state.messages[:-1]))
+            else:
+                prepared = prepare_answer_stream(prompt, history=st.session_state.messages[:-1], hits=hits)
+                answer = st.write_stream(prepared["stream"])
         st.session_state.messages.append({"role": "assistant", "content": answer})
     else:
         st.session_state.pending_confirm = {"query": prompt, "reason": reason}

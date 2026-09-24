@@ -47,6 +47,14 @@ Desktop) as the source for the RAG/auth/Streamlit patterns.
    locking) and over Supabase (heavier setup than this needs, though it'd be
    the right call if this ever needs to scale past a demo).
 
+   **Performance note:** `turso_db.py` shares one client per process. It used to open a
+   new one per call (~360 ms each, since every `create_client_sync` spawns a thread and
+   event loop and does a TLS handshake) vs ~70-90 ms on a reused one. `_execute()`
+   reconnects and retries once if the connection goes stale; `close_client()` runs via
+   `threading._register_atexit` because the client's thread is non-daemon and would hang
+   one-off scripts. The client runs statements serially on one loop, fine for a demo but
+   worth revisiting (a pool) if many sessions poll at once.
+
 5. **Email: Brevo**, free tier (300/day), REST API called via httpx (no SDK).
    Originally SendGrid, replaced (and fully removed) because cogentlabs.co has
    DMARC `p=reject` with no SendGrid DKIM, so SendGrid mail from a `@cogentlabs.co`
@@ -71,6 +79,12 @@ Desktop) as the source for the RAG/auth/Streamlit patterns.
    query includes the assessment's context-resolved `summary` so follow-ups match)
    plus a model-extracted boolean `needs_account_data`. Model confidence is only a
    0.25 backstop. Re-check the 0.38 threshold if the KB changes a lot.
+   **Small talk:** a bare "hi"/"thanks" matches nothing in the KB, so the relevance
+   check above ticketed it. The model now extracts `is_small_talk` (pure greeting/thanks/
+   goodbye, no question); the gate lets those through — even from a VIP — after the
+   human/urgent/angry/billing triggers, and `app.py` skips the KB search and replies via
+   `rag/answer.py::prepare_smalltalk_stream`. Any new gate rule that depends on KB
+   relevance must account for messages that legitimately aren't about the KB.
 
 7. **2 tickets per login, not per day/lifetime.** Counted via
    `turso_db.count_tickets_for_user_since(email, login_started_at)`, where
@@ -100,6 +114,14 @@ Desktop) as the source for the RAG/auth/Streamlit patterns.
    assess→draft→interrupt→feedback→redraft→interrupt→approve→finalize cycle
    ran end-to-end with real LLM calls, and the redraft genuinely
    incorporated the feedback given (see build notes below).
+
+   **Streamlit gotcha (admin review panel):** in Streamlit 1.63 a keyed widget keeps its
+   old text when its default `value` changes, so a redrafted reply never showed up in the
+   box. The draft/feedback text areas are therefore keyed by `draft_version` (bumped in
+   `_set_draft`). Also, a redraft used to ignore the previous draft and rewrite from
+   scratch; the feedback resume now carries the box's current text and
+   `draft_ticket_reply(previous_draft=...)` revises it. There is a single
+   "Approve & send" button that sends whatever is in the box.
 
 ## What was actually verified while building (not just written)
 

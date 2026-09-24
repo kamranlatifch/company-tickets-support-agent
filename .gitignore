@@ -6,6 +6,5 @@ __pycache__/
 
 # Kept out of the public repo: real login credentials, internal HR policy PDFs, and the
 # index built from them. See README ("Accounts" and "Deploying").
-users.yaml
 data/kb/*.pdf
 index/

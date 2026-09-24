@@ -30,6 +30,10 @@ class MessageAssessment(BaseModel):
         default=None, description="Dollar amount if the user asks for a refund/credit, else null"
     )
     wants_human: bool = Field(description="User explicitly asked to talk to a person/support")
+    is_small_talk: bool = Field(
+        default=False,
+        description="Only a greeting, thanks, acknowledgement or goodbye, with no question or request in it",
+    )
     needs_account_data: bool = Field(
         default=False,
         description="Asks about their own records (balance, payslip, request status, personal data) "

@@ -47,6 +47,9 @@ def _gather_and_draft(state: ReviewState) -> dict:
         reason=state.get("reason", ""),
         chat_context=state.get("chat_context", ""),
         admin_notes=notes or None,
+        # On a redraft this is the draft the admin was looking at (with their edits),
+        # so "keep it as it is, add a line" revises it instead of starting over.
+        previous_draft=state.get("draft_body") if notes else None,
     )
     return {
         "draft_subject": draft.subject,
@@ -81,7 +84,11 @@ def _await_admin(state: ReviewState) -> Command[Literal["gather_and_draft", "fin
     if action == "feedback":
         notes = list(state.get("admin_notes") or [])
         notes.append(decision["notes"])
-        return Command(goto="gather_and_draft", update={"admin_notes": notes})
+        return Command(
+            goto="gather_and_draft",
+            # the admin's current text (may include manual edits) becomes the base to revise
+            update={"admin_notes": notes, "draft_body": decision.get("body") or state["draft_body"]},
+        )
     raise ValueError(f"Unknown admin action: {action!r}")
 
 

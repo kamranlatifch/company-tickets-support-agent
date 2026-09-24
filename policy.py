@@ -21,6 +21,10 @@ def should_escalate(
         return True, "angry customer tone"
     if analysis.mentions_billing_or_refund:
         return True, "billing/refund — never auto-resolved via chat"
+    if analysis.is_small_talk:
+        # A bare "hi"/"thanks" has nothing for the KB to match, and isn't worth a ticket
+        # even from a VIP; the triggers above still win if the tone is angry/urgent.
+        return False, ""
     if account and account.tier.lower() in VIP_TIERS:
         return True, f"high-value account tier={account.tier}"
     if analysis.needs_account_data:

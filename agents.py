@@ -27,6 +27,9 @@ assess_agent = Agent(
         "something works (the KB covers policies such as leave, loans, medical, hardware, trips, "
         "plus account basics). Follow-ups like 'how much is the maximum?' inherit the topic of the "
         "conversation so far. Lower confidence only for genuinely ambiguous or multi-part requests. "
+        "Set is_small_talk true ONLY for a pure greeting, thanks, acknowledgement or goodbye "
+        "(hi, hello, good morning, thanks, ok, bye) that contains no question or request; a "
+        "greeting followed by a question ('hi, how do I reset my password') is NOT small talk. "
         "Set needs_account_data true when the user asks about their own records or requests "
         "(their balance, payslip, application status, personal data), which no KB article can answer. "
         "Detect urgency (outage, broken workflow, time pressure), anger/frustration, "
@@ -62,6 +65,7 @@ def draft_ticket_reply(
     reason: str = "",
     chat_context: str = "",
     admin_notes: str | None = None,
+    previous_draft: str | None = None,
 ) -> ReplyDraft:
     """Drafts (or redrafts, with admin_notes) a ticket reply. Takes plain query/
     reason/context strings rather than a MessageAssessment — by the time a
@@ -85,6 +89,12 @@ def draft_ticket_reply(
     )
     if chat_context:
         prompt += f"Conversation so far:\n{chat_context}\n\n"
+    if admin_notes and previous_draft:
+        prompt += (
+            f"Current draft:\n{previous_draft}\n\n"
+            "Revise the current draft according to the admin notes below. Keep every part the "
+            "notes don't ask you to change exactly as it is, including wording the admin edited.\n\n"
+        )
     if admin_notes:
         prompt += f"Admin notes (follow this):\n{admin_notes}\n\n"
     prompt += "Write the reply."
