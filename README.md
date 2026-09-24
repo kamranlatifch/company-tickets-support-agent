@@ -22,7 +22,7 @@ cogent-support-chat/
 ├── app.py                    # Streamlit customer chat (entry point)
 ├── pages/1_Admin_Dashboard.py
 ├── config.py                 # env vars, paths, thresholds
-├── auth.py + users.yaml      # login (email/password/role) — users.yaml is gitignored, copy users.example.yaml
+├── auth.py + users.yaml      # login (email/password/role) — committed: demo accounts, plain-text passwords
 ├── schemas.py                # Pydantic models
 ├── policy.py                 # hardcoded escalation gate
 ├── agents.py                 # Pydantic AI: assess_message, draft_ticket_reply
@@ -70,8 +70,9 @@ Customer chat at `http://localhost:8501`, admin dashboard under the
 
 ## Accounts
 
-`users.yaml` (login credentials) is gitignored so real passwords never reach the
-public repo — start with `cp users.example.yaml users.yaml` and edit it. Account *profile* data (name, tier,
+`users.yaml` (login credentials) is committed to this public repo on purpose, so logins
+work on a deploy. Those are demo accounts with plain-text passwords — treat them as
+public and change them before any real use. Account *profile* data (name, tier,
 plan — used by the escalation policy for VIP-tier detection) lives in Turso,
 not YAML — insert rows via `turso_db.upsert_account()` for any customer you
 want tier-based escalation to apply to.
@@ -105,17 +106,17 @@ Turso for Postgres just to host graph state, for zero behavioral gain.
 
 ## Deploying to Streamlit Cloud
 
-**This repo is public, so `users.yaml`, `data/kb/*.pdf` and `index/` are gitignored
-and are NOT in it.** A Cloud deploy from this repo therefore starts with no logins
-and an empty KB (`rag/store.py` falls back to an empty in-memory index). To get a
-working deploy you must supply those three things, e.g.:
+**This repo is public. `users.yaml` is committed (so logins work), but
+`data/kb/*.pdf` and `index/` are gitignored and are NOT in it** — they're internal HR
+policy documents. A Cloud deploy from this repo therefore starts with logins but an
+**empty KB** (`rag/store.py` falls back to an empty in-memory index), so every
+policy question would escalate. To get a working KB you must supply it, e.g.:
 
 - make the repo private (Community Cloud supports private repos, one private app at
-  a time), remove the three gitignore lines and commit them — Cloud's checkout is
-  read-only, so the Chroma index has to be pre-built locally and committed;
-  `rag/store.py` then copies it into a writable temp dir at runtime; or
-- keep it public and change `auth.py` to read users from Streamlit Secrets, and
-  build the KB somewhere non-public.
+  a time), remove the `data/kb/*.pdf` and `index/` gitignore lines and commit them —
+  Cloud's checkout is read-only, so the Chroma index has to be pre-built locally and
+  committed; `rag/store.py` then copies it into a writable temp dir at runtime; or
+- keep it public and build the KB somewhere non-public.
 
 Turso and Brevo are network services, so they need no special Cloud handling — paste
 the same `.env` values into Streamlit's Secrets (TOML format) when deploying.
@@ -129,4 +130,5 @@ python3 -m rag.ingest      # rebuild the index
 ## Security notes (demo only)
 
 - Passwords in `users.yaml` are plain text — fine for a demo, not production
-- Never commit `.env`, `users.yaml`, the KB PDFs or `index/` to a public repo
+- `users.yaml` is committed to a public repo, so its passwords are public — demo accounts only
+- Never commit `.env`, the KB PDFs or `index/` to a public repo
