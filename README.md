@@ -32,7 +32,7 @@ cogent-support-chat/
 ├── review_graph.py           # LangGraph interrupt/resume — admin review loop
 ├── rag/                      # extract -> chunk -> embed -> store -> retrieve -> answer
 ├── data/kb/                  # KB source docs; the *.pdf files are gitignored (internal), only example .md files are tracked
-└── index/                    # Chroma index — gitignored, built locally by `python3 -m rag.ingest`
+└── index/                    # Chroma index — committed (Cloud deploy needs it); rebuild with `python3 -m rag.ingest`
 ```
 
 ## Setup
@@ -106,29 +106,34 @@ Turso for Postgres just to host graph state, for zero behavioral gain.
 
 ## Deploying to Streamlit Cloud
 
-**This repo is public. `users.yaml` is committed (so logins work), but
-`data/kb/*.pdf` and `index/` are gitignored and are NOT in it** — they're internal HR
-policy documents. A Cloud deploy from this repo therefore starts with logins but an
-**empty KB** (`rag/store.py` falls back to an empty in-memory index), so every
-policy question would escalate. To get a working KB you must supply it, e.g.:
+**This repo is public, and the pre-built Chroma index (`index/`) and `users.yaml` are
+committed to it on purpose.** Streamlit Cloud's checkout is read-only, so the index
+can't be built at runtime; it's built locally, committed, and `rag/store.py` copies it
+into a writable temp dir when it detects Cloud. The source PDFs (`data/kb/*.pdf`) are
+gitignored — they aren't needed at runtime. Because the index stores each chunk's text,
+**the policy content is publicly readable in this repo**.
 
-- make the repo private (Community Cloud supports private repos, one private app at
-  a time), remove the `data/kb/*.pdf` and `index/` gitignore lines and commit them —
-  Cloud's checkout is read-only, so the Chroma index has to be pre-built locally and
-  committed; `rag/store.py` then copies it into a writable temp dir at runtime; or
-- keep it public and build the KB somewhere non-public.
+`chromadb` is pinned in `requirements.txt` to the version that built the index (its
+on-disk format changes between releases) — if you upgrade it, re-run the ingest below
+and commit the new `index/`. In the deploy form, pick the branch that has the code
+(`develop`, unless it's been merged to `main`), set the main file to `app.py`, and
+choose Python 3.12 under Advanced settings.
 
 Turso and Brevo are network services, so they need no special Cloud handling — paste
 the same `.env` values into Streamlit's Secrets (TOML format) when deploying.
 
-Locally, after changing `data/kb/`:
+**Every time `data/kb/` changes:**
 
 ```bash
-python3 -m rag.ingest      # rebuild the index
+python3 -m rag.ingest      # rebuild the index (fresh embeddings)
+git add index/
+git commit -m "Update KB index"
+git push
 ```
 
 ## Security notes (demo only)
 
 - Passwords in `users.yaml` are plain text — fine for a demo, not production
 - `users.yaml` is committed to a public repo, so its passwords are public — demo accounts only
-- Never commit `.env`, the KB PDFs or `index/` to a public repo
+- `index/` is committed to a public repo, so the KB's policy text is public too
+- Never commit `.env` or the KB PDFs

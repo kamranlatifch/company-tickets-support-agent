@@ -4,7 +4,6 @@ __pycache__/
 .streamlit/secrets.toml
 .DS_Store
 
-# Kept out of the public repo: real login credentials, internal HR policy PDFs, and the
-# index built from them. See README ("Accounts" and "Deploying").
+# Kept out of the public repo: the internal HR policy PDFs. The index built from them IS
+# committed on purpose (Streamlit Cloud's filesystem is read-only). See README ("Deploying").
 data/kb/*.pdf
-index/
