@@ -1,0 +1,10 @@
+# Copy to users.yaml (which is gitignored) and set real accounts. Plain-text
+# passwords are demo-only. Login only: email, password, role. Profile data
+# (name, tier, plan) lives in Turso's accounts table, not here — see turso_db.py.
+customer@example.com:
+  password: change-me
+  role: customer
+
+admin@example.com:
+  password: change-me-too
+  role: admin

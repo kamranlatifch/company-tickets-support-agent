@@ -1,0 +1,102 @@
+"""LangGraph interrupt/resume for the admin's draft -> feedback -> approve loop.
+
+Scoped deliberately narrow: this is a single admin, single sitting, tight
+iterative loop — the case LangGraph's HITL pattern is actually built for.
+The customer-to-admin ticket handoff (which can span arbitrary real time and
+different people) stays plain Turso state + polling, not this graph — see
+the project README for why that split.
+"""
+
+from __future__ import annotations
+
+from typing import Literal, TypedDict
+
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph
+from langgraph.types import Command, interrupt
+
+from agents import draft_ticket_reply
+from tools import get_account, search_kb
+
+
+class ReviewState(TypedDict):
+    ticket_id: str
+    user_email: str
+    query: str
+    reason: str
+    chat_context: str
+    draft_subject: str
+    draft_body: str
+    admin_notes: list[str]
+    final_subject: str | None
+    final_body: str | None
+
+
+def _gather_and_draft(state: ReviewState) -> dict:
+    # kb_matches/account are re-fetched fresh each time this node runs (including
+    # on every redraft) and never read back from state — kept out of the
+    # checkpointed state entirely, since LangGraph's checkpointer only reliably
+    # serializes plain JSON-ish types, not arbitrary Pydantic model instances.
+    kb_matches = search_kb(state["query"])
+    account = get_account(state["user_email"])
+    notes = "\n".join(state.get("admin_notes") or [])
+    draft = draft_ticket_reply(
+        state["query"],
+        kb_matches,
+        account,
+        reason=state.get("reason", ""),
+        chat_context=state.get("chat_context", ""),
+        admin_notes=notes or None,
+    )
+    return {
+        "draft_subject": draft.subject,
+        "draft_body": draft.body,
+    }
+
+
+def _await_admin(state: ReviewState) -> Command[Literal["gather_and_draft", "finalize"]]:
+    """Pauses here — interrupt() suspends the graph and saves its state via the
+    checkpointer. Resumes when the caller does
+    graph.invoke(Command(resume={"action": ...}), config={"configurable": {"thread_id": ticket_id}})."""
+    decision = interrupt(
+        {
+            "draft_subject": state["draft_subject"],
+            "draft_body": state["draft_body"],
+        }
+    )
+    action = decision.get("action")
+    if action == "approve":
+        return Command(
+            goto="finalize",
+            update={"final_subject": state["draft_subject"], "final_body": state["draft_body"]},
+        )
+    if action == "edit":
+        return Command(
+            goto="finalize",
+            update={
+                "final_subject": decision.get("subject", state["draft_subject"]),
+                "final_body": decision["body"],
+            },
+        )
+    if action == "feedback":
+        notes = list(state.get("admin_notes") or [])
+        notes.append(decision["notes"])
+        return Command(goto="gather_and_draft", update={"admin_notes": notes})
+    raise ValueError(f"Unknown admin action: {action!r}")
+
+
+def _finalize(state: ReviewState) -> dict:
+    return {}
+
+
+def build_review_graph():
+    graph = StateGraph(ReviewState)
+    graph.add_node("gather_and_draft", _gather_and_draft)
+    graph.add_node("await_admin", _await_admin)
+    graph.add_node("finalize", _finalize)
+
+    graph.set_entry_point("gather_and_draft")
+    graph.add_edge("gather_and_draft", "await_admin")
+    graph.add_edge("finalize", END)
+
+    return graph.compile(checkpointer=MemorySaver())
