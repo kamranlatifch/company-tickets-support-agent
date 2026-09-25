@@ -138,21 +138,14 @@ def _review_panel():
                 ticket_id, done["subject"], done["body"], ticket.user_email
             )
         result = st.session_state.review_email_result
-        provider = result.get("provider", "The email provider")
 
         st.success(f"Approved. Ticket {ticket_id} resolved.")
         st.caption("Exactly what was sent to the customer:")
         st.text_input("Subject sent", value=done["subject"], disabled=True, key=f"sent_subject_{ticket_id}")
         st.text_area("Body sent", value=done["body"], height=200, disabled=True, key=f"sent_body_{ticket_id}")
-        if result["status"] == "sent":
-            st.success(
-                f"{provider} accepted the email to {result['to']} (status {result['status_code']}). "
-                "That means it was handed off, not that it reached the inbox. If it doesn't "
-                f"arrive, check spam and {provider}'s activity/logs page."
-            )
-        elif result["status"] == "stubbed":
+        if result["status"] == "stubbed":
             st.warning(f"No email provider key configured, so nothing was sent to {result['to']}.")
-        else:
+        elif result["status"] == "failed":
             st.error(
                 f"Ticket resolved, but the email to {result['to']} FAILED "
                 f"(status {result.get('status_code')}): {result.get('error')}"
