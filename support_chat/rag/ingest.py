@@ -1,8 +1,3 @@
-"""Build the Chroma index from data/kb/*.pdf, *.txt, *.md
-
-Run from the repo root: python3 -m support_chat.rag.ingest
-"""
-
 from pathlib import Path
 
 from support_chat.config import KB_DIR
@@ -13,7 +8,6 @@ from support_chat.rag.store import upsert
 
 
 def _doc_title(doc) -> str:
-    """The document's own title (first short line, e.g. "Medical Policy"), else its file name."""
     first = doc.blocks[0].text.strip().splitlines()[0].lstrip("# ").strip()
     return first if 0 < len(first) <= 60 else Path(doc.filename).stem.replace("_", " ")
 

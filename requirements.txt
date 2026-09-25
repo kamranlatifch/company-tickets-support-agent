@@ -5,22 +5,17 @@ python-dotenv>=1.0.0
 pyyaml>=6.0.0
 openai>=1.0.0
 
-# RAG
-# Pinned to the version that built the committed index/ (its on-disk format changes between releases)
+
 chromadb==1.5.9
 pymupdf>=1.24.0
 
-# Ticket storage (Turso). Package name has changed over time on Turso's
-# side (libsql-experimental -> libsql-client) — if `pip install` fails on
-# this line, check https://docs.turso.tech/sdk/python/quickstart for the
-# current package name and swap it here.
+
 libsql-client>=0.3.0
 
-# Email (Brevo REST API, called directly — no SDK)
 httpx>=0.27.0
 
-# Admin review loop (interrupt/resume)
 langgraph>=0.4.0
 
-# Tracing (optional — no-op without LOGFIRE_TOKEN)
 logfire>=2.0.0
+
+deepeval>=4.2

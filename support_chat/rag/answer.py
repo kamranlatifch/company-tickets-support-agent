@@ -1,8 +1,3 @@
-"""Generate the RAG answer for messages the policy gate cleared as ANSWER.
-Simpler than role-rag-app's version: MessageAssessment (agents.py) already
-handled category/confidence/small-talk upstream — this module's only job is
-retrieve + generate."""
-
 import re
 
 from support_chat.config import MAX_HISTORY_TURNS, TOP_K
@@ -59,9 +54,6 @@ def prepare_smalltalk_stream(question: str, history: list[dict] | None = None):
 
 
 def search_kb(question: str, summary: str = "", history: list[dict] | None = None) -> list[dict]:
-    """Retrieve KB passages for a message. `summary` is the assessment's one-line,
-    context-resolved restatement — it turns a bare follow-up like 'ok how many max
-    amount i can apply for?' into one that names the topic (loan) so it matches."""
     history = history or []
     top_k = TOP_K + 2 if _needs_wider_search(question, history) else TOP_K
     query = f"{question}\n{summary}" if summary else question

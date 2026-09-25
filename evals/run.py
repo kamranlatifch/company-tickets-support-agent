@@ -1,20 +1,16 @@
 import argparse
 import asyncio
 import json
-import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 
-os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")  # no usage telemetry / cloud login prompts
-
-from support_chat.agents import draft_ticket_reply_async  
-from support_chat.pipeline import assess_and_route_async  
-from support_chat.rag.answer import prepare_answer_stream, search_kb  
-from support_chat.schemas import CustomerAccount  
-from support_chat.tools import search_kb as admin_search_kb  
+from support_chat.agents import draft_ticket_reply_async
+from support_chat.pipeline import assess_and_route_async
+from support_chat.rag.answer import prepare_answer_stream, search_kb
+from support_chat.schemas import CustomerAccount
+from support_chat.tools import search_kb as admin_search_kb
 
 DATASETS = Path(__file__).parent / "datasets"
 RESULTS = Path(__file__).parent / "results"
@@ -32,30 +28,15 @@ class Case:
     retrieval_context: list[str] | None = None
     metadata: dict = field(default_factory=dict)
 
-# Conversation snippets that the follow-up cases refer to by name.
-HISTORIES = {
-    "loan": [
-        {"role": "user", "content": "i want to know about loan policy"},
-        {"role": "assistant", "content": "Cogent Labs has an interest-free loan policy. You can apply by emailing core.team@cogentlabs.co."},
-    ],
-    "leave": [
-        {"role": "user", "content": "tell me about leave policy"},
-        {"role": "assistant", "content": "Cogent Labs offers casual, sick, annual and wedding leaves."},
-    ],
-}
-
-
 def load(name: str) -> list[dict]:
     return json.loads((DATASETS / f"{name}.json").read_text())
 
 
 def sample_customer() -> CustomerAccount:
-    """The customer the drafter is given, as in the app (the gate itself doesn't look at accounts)."""
     return CustomerAccount(email="eval@example.com", name="Eval")
 
 
 async def gather_limited(coroutines):
-    """Run coroutines concurrently on this event loop, at most CONCURRENCY at a time."""
     gate = asyncio.Semaphore(CONCURRENCY)
 
     async def limited(coro):
@@ -68,7 +49,7 @@ async def gather_limited(coroutines):
 # ---- suite 1: routing --------------------------------------------------------------------------
 async def routing_cases(limit: int | None) -> list[Case]:
     async def build(item: dict) -> Case:
-        gate = await assess_and_route_async(item["message"], HISTORIES.get(item["history"], []))
+        gate = await assess_and_route_async(item["message"], item["history"] or [])
         return Case(
             name=item["id"],
             input=item["message"],
@@ -104,7 +85,7 @@ def summarize_routing(cases: list[Case]) -> dict:
 # ---- suite 2: RAG ------------------------------------------------------------------------------
 async def rag_cases(limit: int | None) -> list[Case]:
     async def build(item: dict) -> Case:
-        history = HISTORIES.get(item["history"], [])
+        history = item["history"] or []
         # same steps as the app: assess (for the context-resolved summary) -> search -> answer
         gate = await assess_and_route_async(item["question"], history)
         hits = gate.hits or await asyncio.to_thread(search_kb, item["question"], gate.assessment.summary, history)
@@ -139,7 +120,10 @@ async def draft_cases(limit: int | None) -> list[Case]:
 
 
 # ---- scoring + reporting -----------------------------------------------------------------------
-def score(cases: list[Case], make_metrics, verbose: bool, show_failures: bool = True) -> dict:  # noqa: C901
+def score(cases: list[Case], make_metrics, verbose: bool, show_failures: bool = True) -> dict:
+    # deepeval (and evals.judge / evals.metrics, which import it) are imported here, not at the top of the
+    # file: importing deepeval patches asyncio globally, which breaks the concurrent agent calls made
+    # while the test cases are built. So this only happens after that phase is finished.
     from deepeval import evaluate
     from deepeval.evaluate.configs import AsyncConfig, CacheConfig, DisplayConfig, ErrorConfig
     from deepeval.test_case import LLMTestCase
@@ -185,8 +169,6 @@ def _headline(payload: dict) -> dict:
 
 
 def save(suite: str, payload: dict) -> None:
-    """One file per suite, overwritten each run (no pile of timestamped files). Before overwriting,
-    show how the headline scores moved versus the previous run."""
     RESULTS.mkdir(exist_ok=True)
     path = RESULTS / f"{suite}.json"
     if path.exists():

@@ -1,14 +1,3 @@
-"""The judge: the LLM DeepEval uses to grade answers.
-
-DeepEval defaults to OpenAI. This project runs on OpenRouter, so we give DeepEval a small
-custom model class (DeepEvalBaseLLM) that talks to OpenRouter instead.
-
-Default judge = anthropic/claude-haiku-4.5, deliberately NOT the model that writes the answers
-(google/gemini-2.5-flash): a model tends to grade its own style generously. In testing it was far less
-noisy than openai/gpt-4o-mini (answer relevancy 0.97 vs 0.80, 2 failures vs 6, mostly false alarms).
-Override with EVAL_JUDGE_MODEL in .env.
-"""
-
 import json
 import os
 import re

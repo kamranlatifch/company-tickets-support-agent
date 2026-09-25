@@ -18,7 +18,6 @@ class ChatOutcome(str, Enum):
 
 
 class MessageAssessment(BaseModel):
-    """Structured read on one user message — the only place the LLM interprets raw text."""
 
     category: MessageCategory
     summary: str = Field(description="One-sentence summary of what the user wants")
@@ -49,18 +48,14 @@ class KBMatch(BaseModel):
 
 
 class CustomerAccount(BaseModel):
-    """Just enough to address the customer in a drafted reply."""
-
     email: str
     name: str
-
 
 class ReplyDraft(BaseModel):
     subject: str
     body: str
     mentions_refund_or_credit: bool = False
     refund_or_credit_amount_usd: float | None = None
-
 
 class TicketStatus(str, Enum):
     OPEN = "open"

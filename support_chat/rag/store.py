@@ -1,25 +1,19 @@
-"""Chroma read/write — single support-KB collection (no per-role split, unlike
-role-rag-app). Same local/Cloud bundled-index workaround: Streamlit Community
-Cloud's repo checkout is read-only, so a pre-built index/ is committed to git
-and copied into a writable temp dir at runtime."""
-
-from __future__ import annotations
-
 import os
 import shutil
 import threading
 
 import chromadb
 
+try:
+    from chromadb.api.shared_system_client import SharedSystemClient
+except ImportError:  # module path differs across chromadb versions
+    SharedSystemClient = None
+
 from support_chat.config import COLLECTION_NAME, INDEX_DIR, ROOT
 
 BUNDLED_INDEX_DIR = ROOT / "index"
 _ephemeral_client_instance = None
 
-# One Chroma client per process, created once behind a lock. Streamlit runs every customer session
-# in its own thread; building a client per search made simultaneous searches race each other
-# inside Chroma ("Could not connect to tenant", FileExistsError) — and on Cloud each search also
-# deleted and re-copied the whole index folder under the other threads.
 _lock = threading.RLock()
 _persistent = None
 _materialized = False
@@ -70,12 +64,8 @@ def _forget_persistent_client() -> None:
     global _persistent
     with _lock:
         _persistent = None
-        try:
-            from chromadb.api.shared_system_client import SharedSystemClient
-
+        if SharedSystemClient is not None:
             SharedSystemClient.clear_system_cache()
-        except Exception:  # cache API differs across chromadb versions; a fresh path still works
-            pass
 
 
 def get_client():

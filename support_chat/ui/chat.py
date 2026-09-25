@@ -1,13 +1,14 @@
-"""Cogent Support Chat — customer-facing Streamlit UI (entry point: /app.py)."""
-
 from datetime import datetime, timezone
 
 import streamlit as st
 
 from support_chat.auth import authenticate
 from support_chat.config import LIVE_WAIT_SECONDS, MAX_TICKETS_PER_LOGIN, POLL_INTERVAL_SECONDS
-from support_chat.observability import setup_tracing
+from support_chat.observability import chat_turn, log_gate_decision, setup_tracing
+from support_chat.pipeline import assess_and_route
+from support_chat.rag.answer import prepare_answer_stream, prepare_smalltalk_stream
 from support_chat.schemas import ChatOutcome, TicketStatus
+from support_chat.tools import can_create_ticket, create_ticket, get_ticket
 
 
 def _init_session():
@@ -64,8 +65,6 @@ def _history_text() -> str:
 
 @st.fragment(run_every=POLL_INTERVAL_SECONDS)
 def _wait_for_admin_reply():
-    from support_chat.tools import get_ticket
-
     ticket_id = st.session_state.active_ticket_id
     if not ticket_id:
         return
@@ -99,8 +98,6 @@ def _handle_confirmation():
         no = st.button("No, keep trying myself", key="confirm_no")
 
     if yes:
-        from support_chat.tools import can_create_ticket, create_ticket
-
         ok, count = can_create_ticket(st.session_state.email, st.session_state.login_started_at)
         if not ok:
             msg = (
@@ -156,10 +153,6 @@ def _chat_page():
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-
-    from support_chat.observability import chat_turn, log_gate_decision
-    from support_chat.pipeline import assess_and_route
-    from support_chat.rag.answer import prepare_answer_stream, prepare_smalltalk_stream
 
     history = st.session_state.messages[:-1]  # the conversation before this message
     with chat_turn():

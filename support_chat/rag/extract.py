@@ -1,5 +1,3 @@
-"""Load .pdf, .md, and .txt KB articles into page-level text blocks."""
-
 import re
 from dataclasses import dataclass, field
 from pathlib import Path

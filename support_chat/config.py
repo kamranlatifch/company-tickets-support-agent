@@ -12,8 +12,6 @@ def _resolve_index_dir() -> Path:
     override = os.getenv("CHAT_INDEX_DIR")
     if override:
         return Path(override)
-    # Streamlit Cloud mounts the repo read-only under /mount/src — same
-    # workaround as role-rag-app: copy the committed index to a writable tmp dir.
     on_cloud = Path("/mount/src").is_dir() or os.getenv("STREAMLIT_RUNTIME_ENVIRONMENT") == "cloud"
     if on_cloud:
         return Path(tempfile.gettempdir()) / "cogent-support-index"
@@ -41,9 +39,7 @@ BREVO_FROM_NAME = os.getenv("BREVO_FROM_NAME", "Cogent Support")
 # Policy
 REFUND_APPROVAL_THRESHOLD_USD = float(os.getenv("REFUND_APPROVAL_THRESHOLD_USD", "50"))
 MAX_TICKETS_PER_LOGIN = int(os.getenv("MAX_TICKETS_PER_LOGIN", "2"))
-# The model's self-rated confidence is noisy (in-KB questions scored 0.3-0.5, out-of-KB
-# ones 0.8-0.9 in testing), so it's only a backstop. The real "does the KB cover this"
-# check is the best retrieval score: off-topic questions scored <=0.34, in-KB >=0.40.
+
 KB_CONFIDENCE_MIN = float(os.getenv("KB_CONFIDENCE_MIN", "0.25"))
 KB_MIN_RETRIEVAL_SCORE = float(os.getenv("KB_MIN_RETRIEVAL_SCORE", "0.38"))
 

@@ -1,12 +1,11 @@
-"""Admin dashboard — list tickets, review with AI assistance (LangGraph
-interrupt/resume for draft -> feedback -> approve), resolve + email.
-Entry point: /pages/1_Admin_Dashboard.py."""
-
 import streamlit as st
+from langgraph.types import Command
 
 from support_chat.auth import authenticate
 from support_chat.observability import setup_tracing
 from support_chat.schemas import TicketStatus
+from support_chat.tools import get_ticket, list_all_tickets, resolve_and_email
+from support_chat.workflows.admin_review import build_review_graph
 
 
 def _init_session():
@@ -26,8 +25,6 @@ def _init_session():
 
 @st.cache_resource
 def _get_graph():
-    from support_chat.workflows.admin_review import build_review_graph
-
     return build_review_graph()
 
 
@@ -48,8 +45,6 @@ def _login():
 
 
 def _ticket_list():
-    from support_chat.tools import list_all_tickets
-
     tickets = list_all_tickets()
     open_tickets = [t for t in tickets if t.status == TicketStatus.OPEN]
     answered = [t for t in tickets if t.status == TicketStatus.ANSWERED]
@@ -85,8 +80,6 @@ def _set_draft(payload: dict):
 
 
 def _start_review(ticket_id: str):
-    from support_chat.tools import get_ticket
-
     ticket = get_ticket(ticket_id)
     if ticket is None:
         st.error("Ticket not found.")
@@ -111,8 +104,6 @@ def _start_review(ticket_id: str):
 
 
 def _submit(action: str, **payload):
-    from langgraph.types import Command
-
     graph = _get_graph()
     config = {"configurable": {"thread_id": st.session_state.reviewing_ticket_id}}
     result = graph.invoke(Command(resume={"action": action, **payload}), config=config)
@@ -128,8 +119,6 @@ def _submit(action: str, **payload):
 
 
 def _review_panel():
-    from support_chat.tools import resolve_and_email, get_ticket
-
     ticket_id = st.session_state.reviewing_ticket_id
     st.divider()
     st.subheader(f"Reviewing {ticket_id}")

@@ -88,9 +88,9 @@ LLM-graded metrics are only as good as the judge.
 
 Edit `evals/datasets/*.json`:
 
-- **routing.json** — `{"id", "group", "message", "expected": "ANSWER"|"ESCALATE", "history": null|"loan"|"leave"}`
-- **rag.json** — `{"id", "question", "expected_output", "history"}` (`history` is `null` or the name of a
-  conversation in `HISTORIES` in `run.py`; it's there so a bare follow-up like "ok how many max amount?" can be tested). Write `expected_output` from the
+- **routing.json** — `{"id", "group", "message", "expected": "ANSWER"|"ESCALATE", "history": null|[{"role","content"}, ...]}`
+- **rag.json** — `{"id", "question", "expected_output", "history"}` (`history` is `null` or the earlier
+  messages, written into the case; it's there so a bare follow-up like "ok how many max amount?" can be tested). Write `expected_output` from the
   actual KB text, not from memory; a wrong ground truth makes a good answer look bad.
 - **drafts.json** — `{"id", "query", "reason"}`
 
@@ -102,7 +102,6 @@ Edit `evals/datasets/*.json`:
   versions of the app's own functions (`assess_and_route_async`, `draft_ticket_reply_async`); the sync
   search/Chroma calls run in a worker thread. DeepEval then grades them, also concurrently.
 - **Cost and time.** The rag suite is 10 cases × ~6 judge calls each; all three suites take ~80 s. Use `--limit N` while iterating.
-- **Telemetry.** `run.py` sets `DEEPEVAL_TELEMETRY_OPT_OUT=YES`; nothing is sent to Confident AI.
 - **Small datasets are noisy.** 4 draft cases can swing a lot on one bad judge call. Grow them.
 
 ## 8. What the evals caught (real bugs, not hypotheticals)

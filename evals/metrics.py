@@ -1,10 +1,3 @@
-"""The metrics: which questions we ask about each answer, and how strictly.
-
-Two kinds:
-  * DeepEval's built-in LLM-graded metrics (faithfulness, relevancy, contextual recall/precision, GEval)
-  * a CUSTOM metric (RoutingMatchMetric): no LLM needed — routing is decided by plain code, so it
-    is checked with plain equality. Not everything should be graded by an LLM.
-"""
 
 from deepeval.metrics import (
     AnswerRelevancyMetric,
@@ -47,7 +40,6 @@ class RoutingMatchMetric(BaseMetric):
 
 
 def rag_metrics(judge: OpenRouterJudge) -> list[BaseMetric]:
-    """Retrieval quality (contextual recall/precision) and answer quality (faithfulness/relevancy)."""
     return [
         ContextualRecallMetric(threshold=0.7, model=judge),  # did retrieval fetch what the ideal answer needs?
         ContextualPrecisionMetric(threshold=0.5, model=judge),  # are the relevant passages ranked first?
@@ -57,7 +49,6 @@ def rag_metrics(judge: OpenRouterJudge) -> list[BaseMetric]:
 
 
 def draft_metrics(judge: OpenRouterJudge) -> list[BaseMetric]:
-    """GEval = you write the criteria in plain English, the judge scores against them."""
     return [
         GEval(
             name="No unsupported promises",

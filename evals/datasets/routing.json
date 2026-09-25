@@ -25,7 +25,16 @@
   "group": "follow-up",
   "message": "ok how many max amount i can apply for?",
   "expected": "ANSWER",
-  "history": "loan"
+  "history": [
+   {
+    "role": "user",
+    "content": "i want to know about loan policy"
+   },
+   {
+    "role": "assistant",
+    "content": "Cogent Labs has an interest-free loan policy. You can apply by emailing core.team@cogentlabs.co."
+   }
+  ]
  },
  {
   "id": "mp-two-things",

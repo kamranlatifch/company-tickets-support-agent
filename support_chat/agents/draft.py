@@ -1,13 +1,8 @@
-"""Drafting agent — writes (and redrafts, on admin feedback) the reply for a ticket.
-
-The admin always reviews and approves the result before anything is emailed."""
-
 from pydantic_ai import Agent
 
 from support_chat.agents.llm import get_model
 from support_chat.schemas import CustomerAccount, KBMatch, ReplyDraft
 
-# No default model: it is supplied per call (get_model() is thread-local, see llm.py).
 draft_agent = Agent(
     output_type=ReplyDraft,
     retries=2,
@@ -82,10 +77,6 @@ def draft_ticket_reply(
     admin_notes: str | None = None,
     previous_draft: str | None = None,
 ) -> ReplyDraft:
-    """Drafts (or redrafts, with admin_notes) a ticket reply. Takes plain query/
-    reason/context strings rather than a MessageAssessment — by the time a
-    ticket is being reviewed, only the saved TicketRecord is available, not
-    the original assessment object."""
     prompt = _prompt(query, kb_matches, account, reason, chat_context, admin_notes, previous_draft)
     return _with_subject(draft_agent.run_sync(prompt, model=get_model()).output)
 
@@ -100,6 +91,5 @@ async def draft_ticket_reply_async(
     admin_notes: str | None = None,
     previous_draft: str | None = None,
 ) -> ReplyDraft:
-    """Same as draft_ticket_reply, for callers that already run in an event loop (the evals)."""
     prompt = _prompt(query, kb_matches, account, reason, chat_context, admin_notes, previous_draft)
     return _with_subject((await draft_agent.run(prompt, model=get_model())).output)

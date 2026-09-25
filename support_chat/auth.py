@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import yaml
 
 from support_chat.config import USERS_FILE

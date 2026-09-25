@@ -1,10 +1,3 @@
-"""Resolution email via Brevo — fires once when an admin resolves a ticket.
-
-Brevo's free tier accepts a Gmail sender with no DNS changes (it sends from its own
-domain and we set reply-to to the sender). Calls the REST API directly with httpx,
-so no Brevo SDK is needed. With no BREVO_API_KEY set it just logs.
-"""
-
 import httpx
 
 from support_chat.config import BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME

@@ -44,9 +44,6 @@ def _gather_and_draft(state: ReviewState) -> dict:
 
 
 def _await_admin(state: ReviewState) -> Command[Literal["gather_and_draft", "finalize"]]:
-    """Pauses here — interrupt() suspends the graph and saves its state via the
-    checkpointer. Resumes when the caller does
-    graph.invoke(Command(resume={"action": ...}), config={"configurable": {"thread_id": ticket_id}})."""
     decision = interrupt(
         {
             "draft_subject": state["draft_subject"],

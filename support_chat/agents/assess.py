@@ -1,15 +1,8 @@
-"""Assessment agent — the only place the LLM interprets a raw customer message.
-
-It extracts structured facts (support_chat.schemas.MessageAssessment) and nothing else;
-what to do with them is decided by support_chat.policy, in plain Python.
-Same pattern as Week4/Day05's triage_pydantic/agents.py."""
-
 from pydantic_ai import Agent
 
 from support_chat.agents.llm import get_model
 from support_chat.schemas import MessageAssessment
 
-# No default model: it is supplied per call (get_model() is thread-local, see llm.py).
 assess_agent = Agent(
     output_type=MessageAssessment,
     retries=2,

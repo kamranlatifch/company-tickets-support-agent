@@ -1,12 +1,3 @@
-"""Turso (libSQL) client — tickets and customer accounts.
-
-Uses `libsql_client.create_client_sync(url=, auth_token=)` — verified against
-the installed libsql-client package (create_client_sync/ClientSync.execute/
-ResultSet.rows/Row index access all confirmed directly, not guessed).
-"""
-
-from __future__ import annotations
-
 import atexit
 import threading
 import uuid

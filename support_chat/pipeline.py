@@ -1,8 +1,3 @@
-"""The routing pipeline for one customer message: assess -> search the KB -> gate.
-
-Kept out of the Streamlit page so the app and the evals (/evals) run exactly the same code.
-"""
-
 import asyncio
 from dataclasses import dataclass
 
@@ -43,9 +38,7 @@ def assess_and_route(message: str, history: list[dict]) -> GateResult:
 
 
 async def assess_and_route_async(message: str, history: list[dict]) -> GateResult:
-    """Same as assess_and_route, for callers already inside an event loop (the evals). The LLM
-    call is awaited; the KB search (sync OpenAI + Chroma) runs in a worker thread so it doesn't
-    block the loop."""
+  
     assessment = await assess_message_async(message, history=history_text(history))
     hits, kb_score = [], None
     if not assessment.is_small_talk:

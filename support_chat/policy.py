@@ -1,16 +1,8 @@
-"""Hard gate — escalation rules live here, not in the prompt.
-
-Same principle as Week4/Day05's shared/policy.py: the model only extracts
-structured facts (schemas.MessageAssessment); this module, plain Python,
-decides what happens with them. The model never decides whether to escalate.
-"""
-
 from support_chat.config import KB_CONFIDENCE_MIN, KB_MIN_RETRIEVAL_SCORE
 from support_chat.schemas import ChatOutcome, MessageAssessment
 
 
 def should_escalate(analysis: MessageAssessment, kb_score: float | None = None) -> tuple[bool, str]:
-    """Same rules for every customer. kb_score: similarity of the best KB match (None = not searched)."""
     if analysis.wants_human:
         return True, "user asked to talk to a human"
     if analysis.is_urgent:

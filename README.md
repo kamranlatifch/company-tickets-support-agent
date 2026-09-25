@@ -43,9 +43,8 @@ cogent-support-chat/
 │   ├── kb/                      #   KB source docs; *.pdf are gitignored (internal), example .md are tracked
 │   └── users.yaml               #   logins — committed: demo accounts, plain-text passwords
 ├── index/                       # Chroma index — committed (Cloud deploy needs it)
-├── docs/CONTEXT.md              # design decisions and the reasoning behind them — read first
 ├── docs/EVALS.md                # how the evals work — a walkthrough
-├── requirements.txt / requirements-evals.txt
+├── requirements.txt
 └── .env.example
 ```
 
@@ -88,7 +87,6 @@ Customer chat at `http://localhost:8501`, admin dashboard under the
 ## Evals and tracing
 
 ```bash
-pip install -r requirements-evals.txt
 python3 -m evals.run all        # routing accuracy, RAG quality, draft quality (see docs/EVALS.md)
 ```
 

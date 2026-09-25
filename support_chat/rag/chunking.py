@@ -1,10 +1,7 @@
-"""Section-aware chunking for KB documents (generic heading detection, no
-document-specific vocabulary — adapted from role-rag-app's rag/chunking.py)."""
-
 import re
 
 from support_chat.config import CHUNK_OVERLAP, CHUNK_SIZE
-from support_chat.rag.extract import LoadedDocument, TextBlock
+from support_chat.rag.extract import LoadedDocument
 
 NUMBERED_HEADING_RE = re.compile(r"^\d+(?:\.\d+)*[.)]?\s+\S")
 
