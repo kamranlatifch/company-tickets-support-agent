@@ -188,7 +188,8 @@ def _review_panel():
         if st.button("Submit feedback"):
             if notes.strip():
                 # send the box's current text too, so the redraft revises it (edits included)
-                _submit("feedback", notes=notes, body=body)
+                with st.spinner("Redrafting with your feedback..."):
+                    _submit("feedback", notes=notes, body=body)
                 st.session_state.show_feedback_box = False
                 st.rerun(scope="app")
             else:
