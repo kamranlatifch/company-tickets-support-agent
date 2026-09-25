@@ -1,11 +1,3 @@
-"""LangGraph interrupt/resume for the admin's draft -> feedback -> approve loop.
-
-Scoped deliberately narrow: this is a single admin, single sitting, tight
-iterative loop — the case LangGraph's HITL pattern is actually built for.
-The customer-to-admin ticket handoff (which can span arbitrary real time and
-different people) stays plain Turso state + polling, not this graph — see
-the project README for why that split.
-"""
 
 from __future__ import annotations
 
@@ -15,8 +7,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.types import Command, interrupt
 
-from agents import draft_ticket_reply
-from tools import get_account, search_kb
+from support_chat.agents import draft_ticket_reply
+from support_chat.tools import get_account, search_kb
 
 
 class ReviewState(TypedDict):
@@ -33,10 +25,6 @@ class ReviewState(TypedDict):
 
 
 def _gather_and_draft(state: ReviewState) -> dict:
-    # kb_matches/account are re-fetched fresh each time this node runs (including
-    # on every redraft) and never read back from state — kept out of the
-    # checkpointed state entirely, since LangGraph's checkpointer only reliably
-    # serializes plain JSON-ish types, not arbitrary Pydantic model instances.
     kb_matches = search_kb(state["query"])
     account = get_account(state["user_email"])
     notes = "\n".join(state.get("admin_notes") or [])
@@ -47,8 +35,6 @@ def _gather_and_draft(state: ReviewState) -> dict:
         reason=state.get("reason", ""),
         chat_context=state.get("chat_context", ""),
         admin_notes=notes or None,
-        # On a redraft this is the draft the admin was looking at (with their edits),
-        # so "keep it as it is, add a line" revises it instead of starting over.
         previous_draft=state.get("draft_body") if notes else None,
     )
     return {

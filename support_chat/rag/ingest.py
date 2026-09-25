@@ -1,20 +1,21 @@
 """Build the Chroma index from data/kb/*.pdf, *.txt, *.md
 
-Run: python3 -m rag.ingest
+Run from the repo root: python3 -m support_chat.rag.ingest
 """
 
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from support_chat.config import KB_DIR
+from support_chat.rag.chunking import chunk_document
+from support_chat.rag.client import embed_texts
+from support_chat.rag.extract import SUPPORTED_SUFFIXES, load_document
+from support_chat.rag.store import upsert
 
-from config import KB_DIR
-from rag.chunking import chunk_document
-from rag.client import embed_texts
-from rag.extract import SUPPORTED_SUFFIXES, load_document
-from rag.store import upsert
+
+def _doc_title(doc) -> str:
+    """The document's own title (first short line, e.g. "Medical Policy"), else its file name."""
+    first = doc.blocks[0].text.strip().splitlines()[0].lstrip("# ").strip()
+    return first if 0 < len(first) <= 60 else Path(doc.filename).stem.replace("_", " ")
 
 
 def _load_docs() -> list:
@@ -39,13 +40,19 @@ def ingest_kb() -> int:
     ids, documents, embed_inputs, metadatas = [], [], [], []
     for doc in docs:
         for i, chunk in enumerate(chunk_document(doc)):
+            # A title-only chunk ("Hardware Issuance Policy") holds no information, but it matches
+            # questions about the topic strongly and outranks the real content, so leave it out.
+            if chunk["section"] == doc.filename and len(chunk["text"].strip()) < 60:
+                continue
             doc_id = f"{doc.filename}_{i}"
             ids.append(doc_id)
             documents.append(chunk["text"])
-            # Embed the section title with the text so "who is eligible for casual
-            # leave" can match a chunk whose body never repeats "casual leave".
+            # Embed the document title AND section title with the text (the stored text is unchanged).
+            # A chunk like "Eligibility: • probation not eligible" never says "medical"; without the
+            # document title in front, a question about medical reimbursement can't find it.
             has_section = chunk["section"] != doc.filename
-            embed_inputs.append(f"{chunk['section']}\n{chunk['text']}" if has_section else chunk["text"])
+            header = f"{_doc_title(doc)} — {chunk['section']}" if has_section else _doc_title(doc)
+            embed_inputs.append(f"{header}\n{chunk['text']}" if has_section else chunk["text"])
             metadatas.append(
                 {
                     "source": doc.filename,

@@ -1,0 +1,62 @@
+[
+ {
+  "id": "loan-max",
+  "question": "What is the maximum loan amount?",
+  "expected_output": "You can borrow up to 300,000 PKR or two gross salaries, whichever is less.",
+  "history": null
+ },
+ {
+  "id": "loan-max-followup",
+  "question": "ok how many max amount i can apply for?",
+  "expected_output": "You can borrow up to 300,000 PKR or two gross salaries, whichever is less.",
+  "history": "loan"
+ },
+ {
+  "id": "loan-apply",
+  "question": "How do I apply for a loan?",
+  "expected_output": "Send an email with the details of your need to core.team@cogentlabs.co; the team gets back to you within 1 week. Once approved, collect the loan application form from the Accounts Team and arrange the legal stamp paper yourself.",
+  "history": null
+ },
+ {
+  "id": "loan-repay",
+  "question": "How long do I have to repay a loan?",
+  "expected_output": "It depends on tenure: up to 6 months for 12-18 months of tenure, up to 9 months for over 18-24 months, and up to 12 months for over 24 months, through automatic monthly salary deductions.",
+  "history": null
+ },
+ {
+  "id": "wedding",
+  "question": "How much paid leave do I get for my wedding?",
+  "expected_output": "Permanent team members get paid leave for their own marriage up to a maximum of 1 week (including 5 working days); any additional leave is unpaid or can be adjusted against annual leave balance.",
+  "history": null
+ },
+ {
+  "id": "annual",
+  "question": "How many annual leaves can I take and can they be encashed?",
+  "expected_output": "After 12 months of continuous service you can take up to 15 calendar days (including weekends and public holidays) of paid annual leave, and annual leaves cannot be encashed.",
+  "history": null
+ },
+ {
+  "id": "medical-probation",
+  "question": "Are employees on probation eligible for medical reimbursement?",
+  "expected_output": "No. Team members on probation or internship are not eligible, and no medical bill is entertained during the probation or notice period.",
+  "history": null
+ },
+ {
+  "id": "hardware",
+  "question": "What devices are included in the hardware issuance?",
+  "expected_output": "A 24-inch 1080p LCD, wired mouse, wired keyboard and wired headphones, plus a Type-C to HDMI adapter, HDMI to HDMI cable and HDMI to VGA cable if needed.",
+  "history": null
+ },
+ {
+  "id": "laptop",
+  "question": "How do I request a new laptop?",
+  "expected_output": "The team lead initiates the request to the IT department (it@cogentlabs.co) at least one week (7 days) before the date it is needed.",
+  "history": null
+ },
+ {
+  "id": "password",
+  "question": "How do I reset my password?",
+  "expected_output": "Click Forgot password on the login page.",
+  "history": null
+ }
+]

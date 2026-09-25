@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# LLM evaluation (not needed for the app or a Streamlit Cloud deploy). See docs/EVALS.md
+deepeval>=4.2

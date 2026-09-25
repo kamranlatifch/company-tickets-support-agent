@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from config import USERS_FILE
+from support_chat.config import USERS_FILE
 
 
 def load_users() -> dict:

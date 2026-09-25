@@ -49,11 +49,10 @@ class KBMatch(BaseModel):
 
 
 class CustomerAccount(BaseModel):
+    """Just enough to address the customer in a drafted reply."""
+
     email: str
     name: str
-    tier: str
-    plan: str
-    mrr_usd: float = 0.0
 
 
 class ReplyDraft(BaseModel):

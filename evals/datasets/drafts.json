@@ -1,0 +1,22 @@
+[
+ {
+  "id": "loan-500k",
+  "query": "i need loan of 500000 ,,what should i do ?",
+  "reason": "asks about their own account data — needs a person to look it up"
+ },
+ {
+  "id": "refund-300",
+  "query": "This is unacceptable, my invoice was charged twice. I want my $300 refunded today.",
+  "reason": "billing/refund — never auto-resolved via chat"
+ },
+ {
+  "id": "not-in-kb",
+  "query": "How do I upgrade my subscription plan to the enterprise tier?",
+  "reason": "KB has nothing relevant to this question (best match 0.34)"
+ },
+ {
+  "id": "wants-human",
+  "query": "I want to talk to a human about my medical claim being rejected.",
+  "reason": "user asked to talk to a human"
+ }
+]

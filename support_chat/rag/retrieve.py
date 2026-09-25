@@ -1,6 +1,6 @@
-from config import TOP_K
-from rag.client import embed_query
-from rag.store import search
+from support_chat.config import TOP_K
+from support_chat.rag.client import embed_query
+from support_chat.rag.store import search
 
 
 def format_source(meta: dict | None) -> str:

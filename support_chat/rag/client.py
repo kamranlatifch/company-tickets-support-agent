@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from config import API_KEY, BASE_URL, EMBED_MODEL, MODEL
+from support_chat.config import API_KEY, BASE_URL, EMBED_MODEL, MODEL
 
 if not API_KEY:
     raise SystemExit("Set COGENT_OPRNROUTER_KEY in .env")

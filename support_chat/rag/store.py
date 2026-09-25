@@ -7,13 +7,22 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 
 import chromadb
 
-from config import COLLECTION_NAME, INDEX_DIR, ROOT
+from support_chat.config import COLLECTION_NAME, INDEX_DIR, ROOT
 
 BUNDLED_INDEX_DIR = ROOT / "index"
 _ephemeral_client_instance = None
+
+# One Chroma client per process, created once behind a lock. Streamlit runs every customer session
+# in its own thread; building a client per search made simultaneous searches race each other
+# inside Chroma ("Could not connect to tenant", FileExistsError) — and on Cloud each search also
+# deleted and re-copied the whole index folder under the other threads.
+_lock = threading.RLock()
+_persistent = None
+_materialized = False
 
 
 def _on_cloud() -> bool:
@@ -48,17 +57,39 @@ def _materialize_bundled_index() -> bool:
 
 
 def _persistent_client():
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    return chromadb.PersistentClient(path=str(INDEX_DIR))
+    global _persistent
+    with _lock:
+        if _persistent is None:
+            INDEX_DIR.mkdir(parents=True, exist_ok=True)
+            _persistent = chromadb.PersistentClient(path=str(INDEX_DIR))
+        return _persistent
+
+
+def _forget_persistent_client() -> None:
+    """Drop the cached client (e.g. before the index folder is deleted and rebuilt)."""
+    global _persistent
+    with _lock:
+        _persistent = None
+        try:
+            from chromadb.api.shared_system_client import SharedSystemClient
+
+            SharedSystemClient.clear_system_cache()
+        except Exception:  # cache API differs across chromadb versions; a fresh path still works
+            pass
 
 
 def get_client():
-    if _on_cloud():
-        if bundled_index_available():
-            _materialize_bundled_index()
-            return _persistent_client()
-        return _get_ephemeral_client()
-    return _persistent_client()
+    global _materialized
+    with _lock:
+        if _on_cloud():
+            if bundled_index_available():
+                if not _materialized:  # copy the committed index into the writable temp dir once
+                    _forget_persistent_client()
+                    _materialize_bundled_index()
+                    _materialized = True
+                return _persistent_client()
+            return _get_ephemeral_client()
+        return _persistent_client()
 
 
 def get_collection():
@@ -76,9 +107,11 @@ def reset_and_get_collection():
             pass
         return client.create_collection(COLLECTION_NAME, metadata=_collection_metadata())
 
-    if INDEX_DIR.exists():
-        shutil.rmtree(INDEX_DIR)
-    client = _persistent_client()
+    with _lock:
+        _forget_persistent_client()
+        if INDEX_DIR.exists():
+            shutil.rmtree(INDEX_DIR)
+        client = _persistent_client()
     return client.create_collection(COLLECTION_NAME, metadata=_collection_metadata())
 
 

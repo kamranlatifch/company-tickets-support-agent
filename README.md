@@ -19,21 +19,38 @@ training repo.
 
 ```
 cogent-support-chat/
-├── app.py                    # Streamlit customer chat (entry point)
-├── pages/1_Admin_Dashboard.py
-├── config.py                 # env vars, paths, thresholds
-├── auth.py + users.yaml      # login (email/password/role) — committed: demo accounts, plain-text passwords
-├── schemas.py                # Pydantic models
-├── policy.py                 # hardcoded escalation gate
-├── agents.py                 # Pydantic AI: assess_message, draft_ticket_reply
-├── tools.py                  # KB search / account / ticket / email wrappers
-├── turso_db.py                # ticket + account storage (Turso/libSQL)
-├── email_client.py           # Brevo (stubs/logs if no key set)
-├── review_graph.py           # LangGraph interrupt/resume — admin review loop
-├── rag/                      # extract -> chunk -> embed -> store -> retrieve -> answer
-├── data/kb/                  # KB source docs; the *.pdf files are gitignored (internal), only example .md files are tracked
-└── index/                    # Chroma index — committed (Cloud deploy needs it); rebuild with `python3 -m rag.ingest`
+├── app.py                       # Streamlit entry point: customer chat (deploy this as the main file)
+├── pages/1_Admin_Dashboard.py   # Streamlit entry point: admin dashboard
+│
+├── support_chat/                # the application package — all the real code lives here
+│   ├── config.py                #   env vars, paths, thresholds
+│   ├── schemas.py               #   Pydantic models (assessment, tickets, drafts)
+│   ├── auth.py                  #   login against data/users.yaml
+│   ├── policy.py                #   hardcoded escalation gate — the model never decides this
+│   ├── tools.py                 #   tool functions: KB search, account, tickets, email
+│   ├── pipeline.py              #   assess -> KB search -> gate (shared by the app and the evals)
+│   ├── observability.py         #   Logfire tracing setup
+│   ├── agents/                  #   Pydantic AI: llm.py (shared model), assess.py, draft.py
+│   ├── rag/                     #   extract -> chunk -> embed -> store -> retrieve -> answer (+ ingest)
+│   ├── storage/turso.py         #   ticket + account storage (Turso/libSQL)
+│   ├── notifications/brevo.py   #   resolution email via Brevo (logs only if no key set)
+│   ├── workflows/admin_review.py#   LangGraph interrupt/resume — the admin review loop
+│   └── ui/                      #   chat.py, admin.py — the Streamlit page logic
+│
+├── evals/                       # DeepEval suites: routing, rag, drafts (datasets/, judge.py, metrics.py, run.py)
+├── scripts/init_db.py           # create the Turso tables
+├── data/
+│   ├── kb/                      #   KB source docs; *.pdf are gitignored (internal), example .md are tracked
+│   └── users.yaml               #   logins — committed: demo accounts, plain-text passwords
+├── index/                       # Chroma index — committed (Cloud deploy needs it)
+├── docs/CONTEXT.md              # design decisions and the reasoning behind them — read first
+├── docs/EVALS.md                # how the evals work — a walkthrough
+├── requirements.txt / requirements-evals.txt
+└── .env.example
 ```
+
+Streamlit requires `app.py` and `pages/` at the repo root, so they stay there as thin entry
+points; each just calls `main()` in `support_chat/ui/`.
 
 ## Setup
 
@@ -50,13 +67,13 @@ Fill in `.env`:
 | `COGENT_OPRNROUTER_KEY` | Same OpenRouter key used elsewhere — note the spelling: `OPRN`, not `OPEN` |
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Free at [turso.tech](https://turso.tech): `turso db create cogent-support`, then `turso db show cogent-support --url` and `turso db tokens create cogent-support` |
 | `BREVO_API_KEY` / `BREVO_FROM_EMAIL` / `BREVO_FROM_NAME` | Free tier (300/day) at [brevo.com](https://www.brevo.com) — add and **verify a sender** under Senders, Domains & Dedicated IPs, then create a key under SMTP & API > **API Keys** (must start with `xkeysib-`; the `xsmtpsib-` SMTP keys don't work). A Gmail sender works with no DNS setup; a company-domain sender with a strict DMARC policy needs the domain authenticated in Brevo first |
-| `LOGFIRE_TOKEN` | Optional — leave blank to disable tracing, no code changes needed |
+| `LOGFIRE_TOKEN` | Optional — [logfire.pydantic.dev](https://logfire.pydantic.dev) write token. Blank = tracing off, nothing is sent |
 
 Then initialize storage and the KB index:
 
 ```bash
-python3 -c "from turso_db import init_schema; init_schema()"
-python3 -m rag.ingest
+python3 -m scripts.init_db
+python3 -m support_chat.rag.ingest
 ```
 
 Run locally:
@@ -68,14 +85,26 @@ streamlit run app.py
 Customer chat at `http://localhost:8501`, admin dashboard under the
 "Admin Dashboard" page in the sidebar.
 
+## Evals and tracing
+
+```bash
+pip install -r requirements-evals.txt
+python3 -m evals.run all        # routing accuracy, RAG quality, draft quality (see docs/EVALS.md)
+```
+
+Evals run the app's real pipeline against golden datasets in `evals/datasets/` and grade the results
+with DeepEval (an LLM judge for the RAG/draft suites). Run them after any change to a prompt, the
+chunking, or a threshold. With `LOGFIRE_TOKEN` set, every chat turn is traced to Logfire.
+
 ## Accounts
 
-`users.yaml` (login credentials) is committed to this public repo on purpose, so logins
+`data/users.yaml` (login credentials) is committed to this public repo on purpose, so logins
 work on a deploy. Those are demo accounts with plain-text passwords — treat them as
-public and change them before any real use. Account *profile* data (name, tier,
-plan — used by the escalation policy for VIP-tier detection) lives in Turso,
-not YAML — insert rows via `turso_db.upsert_account()` for any customer you
-want tier-based escalation to apply to.
+public and change them before any real use. Every customer is treated the same way (no tiers): the chat searches the KB first and only
+opens a ticket if an escalation rule fires. A customer's display name — used to address them in a
+drafted reply — lives in Turso (`accounts`: email + name); add rows with
+`support_chat.storage.turso.upsert_account()`. If your Turso database predates this change, run
+`python3 -m scripts.init_db` once to drop the unused `tier`/`plan`/`mrr_usd` columns.
 
 ## What's genuinely verified vs. what needs your credentials to prove out
 
@@ -84,9 +113,9 @@ Verified locally while building this (see commit history / build notes):
 - Full LangGraph interrupt → redraft-on-feedback → finalize-on-approve cycle
 - RAG ingest → retrieve, against the example KB docs
 - Both Streamlit pages boot without import errors
-- `turso_db.py`'s API calls were checked against the actual installed
+- `support_chat/storage/turso.py`'s API calls were checked against the actual installed
   `libsql-client` package's signatures, not guessed. Note it connects over
-  `https://` (`libsql://` websockets get a 400 from Turso) — `get_client()` swaps the scheme.
+  `https://` (`libsql://` websockets get a 400 from Turso) — `_new_client()` swaps the scheme.
 
 Needs your real Turso + Brevo accounts to verify end-to-end (I can't
 create third-party service accounts on your behalf):
@@ -106,9 +135,9 @@ Turso for Postgres just to host graph state, for zero behavioral gain.
 
 ## Deploying to Streamlit Cloud
 
-**This repo is public, and the pre-built Chroma index (`index/`) and `users.yaml` are
+**This repo is public, and the pre-built Chroma index (`index/`) and `data/users.yaml` are
 committed to it on purpose.** Streamlit Cloud's checkout is read-only, so the index
-can't be built at runtime; it's built locally, committed, and `rag/store.py` copies it
+can't be built at runtime; it's built locally, committed, and `support_chat/rag/store.py` copies it
 into a writable temp dir when it detects Cloud. The source PDFs (`data/kb/*.pdf`) are
 gitignored — they aren't needed at runtime. Because the index stores each chunk's text,
 **the policy content is publicly readable in this repo**.
@@ -125,7 +154,7 @@ the same `.env` values into Streamlit's Secrets (TOML format) when deploying.
 **Every time `data/kb/` changes:**
 
 ```bash
-python3 -m rag.ingest      # rebuild the index (fresh embeddings)
+python3 -m support_chat.rag.ingest      # rebuild the index (fresh embeddings)
 git add index/
 git commit -m "Update KB index"
 git push
@@ -133,7 +162,7 @@ git push
 
 ## Security notes (demo only)
 
-- Passwords in `users.yaml` are plain text — fine for a demo, not production
-- `users.yaml` is committed to a public repo, so its passwords are public — demo accounts only
+- Passwords in `data/users.yaml` are plain text — fine for a demo, not production
+- `data/users.yaml` is committed to a public repo, so its passwords are public — demo accounts only
 - `index/` is committed to a public repo, so the KB's policy text is public too
 - Never commit `.env` or the KB PDFs

@@ -14,16 +14,13 @@ from datetime import datetime, timezone
 
 import libsql_client
 
-from config import TURSO_AUTH_TOKEN, TURSO_DATABASE_URL
-from schemas import CustomerAccount, TicketRecord, TicketStatus
+from support_chat.config import TURSO_AUTH_TOKEN, TURSO_DATABASE_URL
+from support_chat.schemas import CustomerAccount, TicketRecord, TicketStatus
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS accounts (
     email TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    tier TEXT NOT NULL,
-    plan TEXT NOT NULL,
-    mrr_usd REAL NOT NULL DEFAULT 0
+    name TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tickets (
@@ -97,11 +94,20 @@ def _execute(sql: str, params: list | None = None):
         return get_client().execute(sql, params)
 
 
+# Columns from an earlier design (customer tiers); nothing reads them any more.
+_LEGACY_ACCOUNT_COLUMNS = ("tier", "plan", "mrr_usd")
+
+
 def init_schema() -> None:
+    """Create the tables, and drop the legacy accounts columns if this database still has them."""
     for statement in _SCHEMA.strip().split(";"):
         statement = statement.strip()
         if statement:
             _execute(statement)
+    existing = {row[1] for row in _execute("PRAGMA table_info(accounts)").rows}
+    for column in _LEGACY_ACCOUNT_COLUMNS:
+        if column in existing:
+            _execute(f"ALTER TABLE accounts DROP COLUMN {column}")
 
 
 def _now() -> str:
@@ -112,19 +118,17 @@ def _now() -> str:
 
 
 def get_account(email: str) -> CustomerAccount | None:
-    rs = _execute("SELECT email, name, tier, plan, mrr_usd FROM accounts WHERE email = ?", [email])
+    rs = _execute("SELECT email, name FROM accounts WHERE email = ?", [email])
     if not rs.rows:
         return None
     row = rs.rows[0]
-    return CustomerAccount(email=row[0], name=row[1], tier=row[2], plan=row[3], mrr_usd=row[4])
+    return CustomerAccount(email=row[0], name=row[1])
 
 
 def upsert_account(account: CustomerAccount) -> None:
     _execute(
-        "INSERT INTO accounts (email, name, tier, plan, mrr_usd) VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(email) DO UPDATE SET name=excluded.name, tier=excluded.tier, "
-        "plan=excluded.plan, mrr_usd=excluded.mrr_usd",
-        [account.email, account.name, account.tier, account.plan, account.mrr_usd],
+        "INSERT INTO accounts (email, name) VALUES (?, ?) ON CONFLICT(email) DO UPDATE SET name=excluded.name",
+        [account.email, account.name],
     )
 
 

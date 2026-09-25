@@ -5,9 +5,9 @@ retrieve + generate."""
 
 import re
 
-from config import MAX_HISTORY_TURNS, TOP_K
-from rag.client import chat_stream
-from rag.retrieve import format_context, retrieve
+from support_chat.config import MAX_HISTORY_TURNS, TOP_K
+from support_chat.rag.client import chat_stream
+from support_chat.rag.retrieve import format_context, retrieve
 
 ANSWER_SYSTEM = (
     "You are a warm, helpful Cogent Labs support assistant. "
@@ -16,7 +16,8 @@ ANSWER_SYSTEM = (
     "Write in plain, conversational language. "
     "NEVER use meta/document-referencing language ('the passages', 'the documents'). "
     "Speak directly: 'You can reset your password by...' not 'The documents mention...'. "
-    "Keep answers concise but complete."
+    "Keep answers concise but complete, and stay on the question asked: use only the KB details "
+    "that answer it and leave out related information nobody asked for."
 )
 
 FOLLOWUP_HINTS = re.compile(

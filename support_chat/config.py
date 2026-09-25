@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]  # repo root (this file is support_chat/config.py)
 load_dotenv(ROOT / ".env")
 
 
@@ -30,6 +30,9 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "openai/text-embedding-3-small")
 TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL", "")
 TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "")
 
+# Logfire tracing (optional: blank token = nothing is sent anywhere)
+LOGFIRE_TOKEN = os.getenv("LOGFIRE_TOKEN", "")
+
 # Brevo (email on ticket resolution)
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 BREVO_FROM_EMAIL = os.getenv("BREVO_FROM_EMAIL", "")
@@ -43,13 +46,12 @@ MAX_TICKETS_PER_LOGIN = int(os.getenv("MAX_TICKETS_PER_LOGIN", "2"))
 # check is the best retrieval score: off-topic questions scored <=0.34, in-KB >=0.40.
 KB_CONFIDENCE_MIN = float(os.getenv("KB_CONFIDENCE_MIN", "0.25"))
 KB_MIN_RETRIEVAL_SCORE = float(os.getenv("KB_MIN_RETRIEVAL_SCORE", "0.38"))
-VIP_TIERS = {"enterprise", "vip", "platinum"}
 
 # Paths
 DATA_DIR = ROOT / "data"
 KB_DIR = DATA_DIR / "kb"
 INDEX_DIR = _resolve_index_dir()
-USERS_FILE = ROOT / "users.yaml"
+USERS_FILE = DATA_DIR / "users.yaml"
 
 COLLECTION_NAME = "support_kb"
 TOP_K = 4

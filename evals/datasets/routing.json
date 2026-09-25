@@ -1,0 +1,72 @@
+[
+ {
+  "id": "st-hi",
+  "group": "small talk",
+  "message": "hi",
+  "expected": "ANSWER",
+  "history": null
+ },
+ {
+  "id": "kb-loan-max-2",
+  "group": "in KB",
+  "message": "how much is the maximum loan amount i can apply for?",
+  "expected": "ANSWER",
+  "history": null
+ },
+ {
+  "id": "kb-medical-probation",
+  "group": "in KB",
+  "message": "Are people on probation eligible for medical reimbursement?",
+  "expected": "ANSWER",
+  "history": null
+ },
+ {
+  "id": "fu-loan-max",
+  "group": "follow-up",
+  "message": "ok how many max amount i can apply for?",
+  "expected": "ANSWER",
+  "history": "loan"
+ },
+ {
+  "id": "mp-two-things",
+  "group": "multi-part",
+  "message": "two things: how much notice for wedding leave, and can annual leaves be encashed?",
+  "expected": "ANSWER",
+  "history": null
+ },
+ {
+  "id": "out-upgrade",
+  "group": "not in KB",
+  "message": "How do I upgrade my subscription plan?",
+  "expected": "ESCALATE",
+  "history": null
+ },
+ {
+  "id": "acct-balance",
+  "group": "own account data",
+  "message": "What is my current leave balance?",
+  "expected": "ESCALATE",
+  "history": null
+ },
+ {
+  "id": "hard-greet-refund",
+  "group": "hard trigger",
+  "message": "hi, I want a $300 refund",
+  "expected": "ESCALATE",
+  "history": null
+ },
+ {
+  "id": "hard-angry",
+  "group": "hard trigger",
+  "message": "This is ridiculous!!! Your process is a joke and nobody ever helps me",
+  "expected": "ESCALATE",
+  "history": null
+ },
+ {
+  "id": "hard-human",
+  "group": "hard trigger",
+  "message": "Can I talk to a real person please?",
+  "expected": "ESCALATE",
+  "history": null
+ }
+]

@@ -7,3 +7,8 @@ __pycache__/
 # Kept out of the public repo: the internal HR policy PDFs. The index built from them IS
 # committed on purpose (Streamlit Cloud's filesystem is read-only). See README ("Deploying").
 data/kb/*.pdf
+
+# eval run output and DeepEval's local files
+evals/results/
+.deepeval/
+.deepeval_telemetry.txt

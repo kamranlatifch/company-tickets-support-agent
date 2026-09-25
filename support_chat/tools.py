@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import turso_db
-from config import MAX_TICKETS_PER_LOGIN
-from email_client import send_resolution_email
-from rag.retrieve import retrieve
-from schemas import CustomerAccount, KBMatch, TicketRecord
+from support_chat.storage import turso
+from support_chat.config import MAX_TICKETS_PER_LOGIN
+from support_chat.notifications.brevo import send_resolution_email
+from support_chat.rag.retrieve import retrieve
+from support_chat.schemas import CustomerAccount, KBMatch, TicketRecord
 
 
 def search_kb(query: str, limit: int = 3) -> list[KBMatch]:
@@ -21,38 +21,38 @@ def search_kb(query: str, limit: int = 3) -> list[KBMatch]:
 
 
 def get_account(email: str) -> CustomerAccount | None:
-    return turso_db.get_account(email)
+    return turso.get_account(email)
 
 
 def can_create_ticket(user_email: str, login_started_at: str) -> tuple[bool, int]:
     """Enforces MAX_TICKETS_PER_LOGIN — resets every login, per login_started_at
     (an ISO timestamp captured once at login and kept in session state)."""
-    count = turso_db.count_tickets_for_user_since(user_email, login_started_at)
+    count = turso.count_tickets_for_user_since(user_email, login_started_at)
     return count < MAX_TICKETS_PER_LOGIN, count
 
 
 def create_ticket(user_email: str, query: str, chat_context: str, reason: str) -> TicketRecord:
-    return turso_db.create_ticket(user_email, query, chat_context, reason)
+    return turso.create_ticket(user_email, query, chat_context, reason)
 
 
 def get_ticket(ticket_id: str) -> TicketRecord | None:
-    return turso_db.get_ticket(ticket_id)
+    return turso.get_ticket(ticket_id)
 
 
 def list_open_tickets() -> list[TicketRecord]:
-    from schemas import TicketStatus
+    from support_chat.schemas import TicketStatus
 
-    return turso_db.list_tickets(status=TicketStatus.OPEN)
+    return turso.list_tickets(status=TicketStatus.OPEN)
 
 
 def list_all_tickets() -> list[TicketRecord]:
-    return turso_db.list_tickets()
+    return turso.list_tickets()
 
 
 def save_draft(ticket_id: str, subject: str, body: str) -> None:
-    turso_db.save_draft(ticket_id, subject, body)
+    turso.save_draft(ticket_id, subject, body)
 
 
 def resolve_and_email(ticket_id: str, subject: str, body: str, to_email: str) -> dict:
-    turso_db.resolve_ticket(ticket_id, body)
+    turso.resolve_ticket(ticket_id, body)
     return send_resolution_email(to_email, subject, body)

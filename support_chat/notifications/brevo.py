@@ -7,7 +7,7 @@ so no Brevo SDK is needed. With no BREVO_API_KEY set it just logs.
 
 import httpx
 
-from config import BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME
+from support_chat.config import BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME
 
 _BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
