@@ -43,8 +43,8 @@ A test case is just data:
 
 **routing** — for each message, run the real gate (`support_chat/pipeline.py`) and check ANSWER vs ESCALATE.
 Uses a *custom* metric (`RoutingMatchMetric`): the gate is plain code, so plain equality is the right
-check. No judge, no cost. Dataset: `evals/datasets/routing.json` — 10 cases, one or two per group (greeting, in-KB, follow-up,
-multi-part, not-in-KB, account data, three hard triggers: refund, angry, human). Each dataset is capped at 10 cases to keep runs fast and cheap.
+check. No judge, no cost. Dataset: `evals/datasets/routing.json` — 10 cases, one or two per group (greeting, a rude remark to the bot, "what do you cover?", follow-up,
+multi-part, angry-but-valid question, not-in-KB, account data, a refund, a human request). Each dataset is capped at 10 cases to keep runs fast and cheap.
 
 **rag** — for each question, retrieve passages, generate the answer, then grade with four built-in metrics:
 

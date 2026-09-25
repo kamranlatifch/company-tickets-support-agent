@@ -31,7 +31,12 @@ class MessageAssessment(BaseModel):
     wants_human: bool = Field(description="User explicitly asked to talk to a person/support")
     is_small_talk: bool = Field(
         default=False,
-        description="Only a greeting, thanks, acknowledgement or goodbye, with no question or request in it",
+        description="Only a greeting, thanks, acknowledgement or goodbye, or a remark about the assistant "
+        "itself (a compliment, insult or complaint about the bot), with no question or request in it",
+    )
+    asks_what_you_cover: bool = Field(
+        default=False,
+        description="Asks which topics, policies or documents the assistant knows about or can help with",
     )
     needs_account_data: bool = Field(
         default=False,

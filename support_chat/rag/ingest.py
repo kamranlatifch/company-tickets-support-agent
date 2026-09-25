@@ -50,6 +50,7 @@ def ingest_kb() -> int:
             metadatas.append(
                 {
                     "source": doc.filename,
+                    "title": _doc_title(doc),
                     "section": chunk["section"],
                     "page": int(chunk["page"]),
                     "chunk": i,

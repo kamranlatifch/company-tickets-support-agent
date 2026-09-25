@@ -7,16 +7,16 @@
   "history": null
  },
  {
-  "id": "kb-loan-max-2",
-  "group": "in KB",
-  "message": "how much is the maximum loan amount i can apply for?",
+  "id": "insult-bot",
+  "group": "small talk",
+  "message": "you are so dumb",
   "expected": "ANSWER",
   "history": null
  },
  {
-  "id": "kb-medical-probation",
-  "group": "in KB",
-  "message": "Are people on probation eligible for medical reimbursement?",
+  "id": "meta-policies",
+  "group": "asks what you cover",
+  "message": "what are the policies i can question you about?",
   "expected": "ANSWER",
   "history": null
  },
@@ -44,6 +44,13 @@
   "history": null
  },
  {
+  "id": "angry-valid-q",
+  "group": "angry but valid",
+  "message": "This is ridiculous, I've asked three times!! How much notice do I need for wedding leave?",
+  "expected": "ANSWER",
+  "history": null
+ },
+ {
   "id": "out-upgrade",
   "group": "not in KB",
   "message": "How do I upgrade my subscription plan?",
@@ -61,13 +68,6 @@
   "id": "hard-greet-refund",
   "group": "hard trigger",
   "message": "hi, I want a $300 refund",
-  "expected": "ESCALATE",
-  "history": null
- },
- {
-  "id": "hard-angry",
-  "group": "hard trigger",
-  "message": "This is ridiculous!!! Your process is a joke and nobody ever helps me",
   "expected": "ESCALATE",
   "history": null
  },

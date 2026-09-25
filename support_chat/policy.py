@@ -7,13 +7,11 @@ def should_escalate(analysis: MessageAssessment, kb_score: float | None = None) 
         return True, "user asked to talk to a human"
     if analysis.is_urgent:
         return True, "urgent"
-    if analysis.is_angry:
-        return True, "angry customer tone"
     if analysis.mentions_billing_or_refund:
         return True, "billing/refund — never auto-resolved via chat"
-    if analysis.is_small_talk:
-        # A bare "hi"/"thanks" has nothing for the KB to match and isn't worth a ticket;
-        # the triggers above still win if the tone is angry/urgent.
+    if analysis.is_small_talk or analysis.asks_what_you_cover:
+        # A bare "hi", a remark about the bot, or "what can you help with?" has nothing for the KB
+        # to match and isn't worth a ticket; the triggers above still win if it is urgent, etc.
         return False, ""
     if analysis.needs_account_data:
         return True, "asks about their own account data — needs a person to look it up"

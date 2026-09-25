@@ -18,6 +18,11 @@ class GateResult:
     reason: str
 
 
+def _skips_kb_search(assessment: MessageAssessment) -> bool:
+    """Small talk and "what can you help with?" aren't about the content of any policy."""
+    return assessment.is_small_talk or assessment.asks_what_you_cover
+
+
 def history_text(history: list[dict]) -> str:
     lines = []
     for msg in history[-HISTORY_WINDOW:]:
@@ -29,8 +34,8 @@ def history_text(history: list[dict]) -> str:
 def assess_and_route(message: str, history: list[dict]) -> GateResult:
     """`history` is the conversation BEFORE `message` ({"role", "content"} dicts)."""
     assessment = assess_message(message, history=history_text(history))
-    hits, kb_score = [], None  # small talk skips the KB search and the relevance check
-    if not assessment.is_small_talk:
+    hits, kb_score = [], None  # these skip the KB search and the relevance check
+    if not _skips_kb_search(assessment):
         hits = search_kb(message, assessment.summary, history)
         kb_score = hits[0]["score"] if hits else 0.0
     outcome, reason = decide_outcome(assessment, kb_score)
@@ -41,7 +46,7 @@ async def assess_and_route_async(message: str, history: list[dict]) -> GateResul
   
     assessment = await assess_message_async(message, history=history_text(history))
     hits, kb_score = [], None
-    if not assessment.is_small_talk:
+    if not _skips_kb_search(assessment):
         hits = await asyncio.to_thread(search_kb, message, assessment.summary, history)
         kb_score = hits[0]["score"] if hits else 0.0
     outcome, reason = decide_outcome(assessment, kb_score)

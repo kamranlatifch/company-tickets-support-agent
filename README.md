@@ -8,8 +8,8 @@ training repo.
 
 - Customers log in and chat; confident, low-stakes questions get answered
   directly from a KB (Chroma + OpenRouter embeddings)
-- Anything urgent, angry, billing-related, low-confidence, or explicitly
-  asking for a human becomes a ticket (hardcoded policy gate — the model
+- Anything urgent, billing-related, low-confidence, about the customer's own
+  records, or explicitly asking for a human becomes a ticket (hardcoded policy gate — the model
   never decides this itself)
 - Admin reviews tickets in a separate dashboard, assisted by the model
   (draft → feedback → redraft → approve, via LangGraph interrupt/resume)

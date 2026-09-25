@@ -6,7 +6,7 @@ from support_chat.auth import authenticate
 from support_chat.config import LIVE_WAIT_SECONDS, MAX_TICKETS_PER_LOGIN, POLL_INTERVAL_SECONDS
 from support_chat.observability import chat_turn, log_gate_decision, setup_tracing
 from support_chat.pipeline import assess_and_route
-from support_chat.rag.answer import prepare_answer_stream, prepare_smalltalk_stream
+from support_chat.rag.answer import kb_overview, prepare_answer_stream, prepare_smalltalk_stream
 from support_chat.schemas import ChatOutcome, TicketStatus
 from support_chat.tools import can_create_ticket, create_ticket, get_ticket
 
@@ -164,7 +164,10 @@ def _chat_page():
 
         if gate.outcome == ChatOutcome.ANSWER:
             with st.chat_message("assistant"):
-                if gate.assessment.is_small_talk:
+                if gate.assessment.asks_what_you_cover:
+                    answer = kb_overview()
+                    st.markdown(answer)
+                elif gate.assessment.is_small_talk:
                     answer = st.write_stream(prepare_smalltalk_stream(prompt, history))
                 else:
                     prepared = prepare_answer_stream(prompt, history=history, hits=gate.hits)
